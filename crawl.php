@@ -7,180 +7,214 @@ $crawling = array();
 $alreadyFoundImages = array();
 
 function linkExists($url) {
-	global $db;
+    global $db;
 
-	$query = $db->prepare("SELECT * FROM sites WHERE url = :url");
+    $query = $db->prepare("SELECT * FROM sites WHERE url = :url");
 
-	$query->bindParam(":url", $url);
-	$query->execute();
+    $query->bindParam(":url", $url);
+    $query->execute();
 
-	return $query->rowCount() != 0;
+    return $query->rowCount() != 0;
 }
 
 function insertLink($url, $title, $description, $keywords) {
-	global $db;
+    global $db;
 
-	$query = $db->prepare("INSERT INTO sites(url, title, description, keywords)
-							VALUES(:url, :title, :description, :keywords)");
+    $query = $db->prepare("INSERT INTO sites(url, title, description, keywords)
+                            VALUES(:url, :title, :description, :keywords)");
 
-	$query->bindParam(":url", $url);
-	$query->bindParam(":title", $title);
-	$query->bindParam(":description", $description);
-	$query->bindParam(":keywords", $keywords);
+    $query->bindParam(":url", $url);
+    $query->bindParam(":title", $title);
+    $query->bindParam(":description", $description);
+    $query->bindParam(":keywords", $keywords);
 
-	return $query->execute();
+    return $query->execute();
 }
 
 function insertImage($url, $src, $alt, $title) {
-	global $db;
+    global $db;
 
-	$query = $db->prepare("INSERT INTO images(siteUrl, imageUrl, alt, title)
-							VALUES(:siteUrl, :imageUrl, :alt, :title)");
+    $query = $db->prepare("INSERT INTO images(siteUrl, imageUrl, alt, title)
+                            VALUES(:siteUrl, :imageUrl, :alt, :title)");
 
-	$query->bindParam(":siteUrl", $url);
-	$query->bindParam(":imageUrl", $src);
-	$query->bindParam(":alt", $alt);
-	$query->bindParam(":title", $title);
+    $query->bindParam(":siteUrl", $url);
+    $query->bindParam(":imageUrl", $src);
+    $query->bindParam(":alt", $alt);
+    $query->bindParam(":title", $title);
 
-	return $query->execute();
+    return $query->execute();
+}
+
+function insertVideo($url, $title, $thumbnailUrl) {
+    global $db;
+
+    $query = $db->prepare("INSERT INTO videos(videoUrl, title, thumbnailUrl)
+                            VALUES(:videoUrl, :title, :thumbnailUrl)");
+
+    $query->bindParam(":videoUrl", $url);
+    $query->bindParam(":title", $title);
+    $query->bindParam(":thumbnailUrl", $thumbnailUrl);
+
+    return $query->execute();
 }
 
 function createLink($src, $url) {
 
-	$scheme = parse_url($url)["scheme"]; // http
-	$host = parse_url($url)["host"]; // www.reecekenney.com
-	
-	if(substr($src, 0, 2) == "//") {
-		$src =  $scheme . ":" . $src;
-	}
-	else if(substr($src, 0, 1) == "/") {
-		$src = $scheme . "://" . $host . $src;
-	}
-	else if(substr($src, 0, 2) == "./") {
-		$src = $scheme . "://" . $host . dirname(parse_url($url)["path"]) . substr($src, 1);
-	}
-	else if(substr($src, 0, 3) == "../") {
-		$src = $scheme . "://" . $host . "/" . $src;
-	}
-	else if(substr($src, 0, 5) != "https" && substr($src, 0, 4) != "http") {
-		$src = $scheme . "://" . $host . "/" . $src;
-	}
+    $scheme = parse_url($url)["scheme"]; // http
+    $host = parse_url($url)["host"]; // www.example.com
+    
+    if(substr($src, 0, 2) == "//") {
+        $src =  $scheme . ":" . $src;
+    }
+    else if(substr($src, 0, 1) == "/") {
+        $src = $scheme . "://" . $host . $src;
+    }
+    else if(substr($src, 0, 2) == "./") {
+        $src = $scheme . "://" . $host . dirname(parse_url($url)["path"]) . substr($src, 1);
+    }
+    else if(substr($src, 0, 3) == "../") {
+        $src = $scheme . "://" . $host . "/" . $src;
+    }
+    else if(substr($src, 0, 5) != "https" && substr($src, 0, 4) != "http") {
+        $src = $scheme . "://" . $host . "/" . $src;
+    }
 
-	return $src;
+    return $src;
 }
 
 function getDetails($url) {
 
-	global $alreadyFoundImages;
+    global $alreadyFoundImages;
 
-	$parser = new DomDocumentParser($url);
+    $parser = new DomDocumentParser($url);
 
-	$titleArray = $parser->getTitleTags();
+    $titleArray = $parser->getTitleTags();
 
-	if(sizeof($titleArray) == 0 || $titleArray->item(0) == NULL) {
-		return;
-	}
+    if(sizeof($titleArray) == 0 || $titleArray->item(0) == NULL) {
+        return;
+    }
 
-	$title = $titleArray->item(0)->nodeValue;
-	$title = str_replace("\n", "", $title);
+    $title = $titleArray->item(0)->nodeValue;
+    $title = str_replace("\n", "", $title);
 
-	if($title == "") {
-		return;
-	}
+    if($title == "") {
+        return;
+    }
 
-	$description = "";
-	$keywords = "";
+    $description = "";
+    $keywords = "";
 
-	$metasArray = $parser->getMetatags();
+    $metasArray = $parser->getMetatags();
 
-	foreach($metasArray as $meta) {
+    foreach($metasArray as $meta) {
 
-		if($meta->getAttribute("name") == "description") {
-			$description = $meta->getAttribute("content");
-		}
+        if($meta->getAttribute("name") == "description") {
+            $description = $meta->getAttribute("content");
+        }
 
-		if($meta->getAttribute("name") == "keywords") {
-			$keywords = $meta->getAttribute("content");
-		}
-	}
+        if($meta->getAttribute("name") == "keywords") {
+            $keywords = $meta->getAttribute("content");
+        }
+    }
 
-	$description = str_replace("\n", "", $description);
-	$keywords = str_replace("\n", "", $keywords);
-
-
-	if(linkExists($url)) {
-		echo "$url already exists<br>";
-	}
-	else if(insertLink($url, $title, $description, $keywords)) {
-		echo "SUCCESS: $url<br>";
-	}
-	else {
-		echo "ERROR: Failed to insert $url<br>";
-	}
-
-	$imageArray = $parser->getImages();
-	foreach($imageArray as $image) {
-		$src = $image->getAttribute("src");
-		$alt = $image->getAttribute("alt");
-		$title = $image->getAttribute("title");
-
-		if(!$title && !$alt) {
-			continue;
-		}
-
-		$src = createLink($src, $url);
-
-		if(!in_array($src, $alreadyFoundImages)) {
-			$alreadyFoundImages[] = $src;
-
-			insertImage($url, $src, $alt, $title);
-		}
-
-	}
+    $description = str_replace("\n", "", $description);
+    $keywords = str_replace("\n", "", $keywords);
 
 
+    if(linkExists($url)) {
+        echo "$url already exists<br>";
+    }
+    else if(insertLink($url, $title, $description, $keywords)) {
+        echo "SUCCESS: $url<br>";
+    }
+    else {
+        echo "ERROR: Failed to insert $url<br>";
+    }
+
+    $imageArray = $parser->getImages();
+    foreach($imageArray as $image) {
+        $src = $image->getAttribute("src");
+        $alt = $image->getAttribute("alt");
+        $title = $image->getAttribute("title");
+
+        if(!$title && !$alt) {
+            continue;
+        }
+
+        $src = createLink($src, $url);
+
+        if(!in_array($src, $alreadyFoundImages)) {
+            $alreadyFoundImages[] = $src;
+
+            insertImage($url, $src, $alt, $title);
+        }
+
+    }
+
+    // Extraer detalles de videos
+    $videoArray = $parser->getVideos();
+    foreach($videoArray as $video) {
+        $src = $video->getAttribute("src");
+        $title = $video->getAttribute("title");
+        
+        // Detectar si es un video de YouTube
+        if(strpos($src, "youtube.com/embed/") !== false) {
+            $videoId = substr($src, strrpos($src, '/') + 1);
+            $thumbnailUrl = "https://img.youtube.com/vi/$videoId/maxresdefault.jpg";
+            insertVideo($src, $title, $thumbnailUrl);
+        }
+        // Detectar si es un video de Vimeo
+        else if(strpos($src, "player.vimeo.com/video/") !== false) {
+            $videoId = substr($src, strrpos($src, '/') + 1);
+            $json = file_get_contents("https://vimeo.com/api/v2/video/$videoId.json");
+            $data = json_decode($json);
+            $thumbnailUrl = $data[0]->thumbnail_large;
+            insertVideo($src, $title, $thumbnailUrl);
+        }
+    }
 }
 
 function followLinks($url) {
 
-	global $alreadyCrawled;
-	global $crawling;
+    global $alreadyCrawled;
+    global $crawling;
 
-	$parser = new DomDocumentParser($url);
+    $parser = new DomDocumentParser($url);
 
-	$linkList = $parser->getLinks();
+    $linkList = $parser->getLinks();
 
-	foreach($linkList as $link) {
-		$href = $link->getAttribute("href");
+    foreach($linkList as $link) {
+        $href = $link->getAttribute("href");
 
-		if(strpos($href, "#") !== false) {
-			continue;
-		}
-		else if(substr($href, 0, 11) == "javascript:") {
-			continue;
-		}
-
-
-		$href = createLink($href, $url);
+        if(strpos($href, "#") !== false) {
+            continue;
+        }
+        else if(substr($href, 0, 11) == "javascript:") {
+            continue;
+        }
 
 
-		if(!in_array($href, $alreadyCrawled)) {
-			$alreadyCrawled[] = $href;
-			$crawling[] = $href;
+        $href = createLink($href, $url);
 
-			getDetails($href);
-		}
 
-	}
+        if(!in_array($href, $alreadyCrawled)) {
+            $alreadyCrawled[] = $href;
+            $crawling[] = $href;
 
-	array_shift($crawling);
+            getDetails($href);
+        }
 
-	foreach($crawling as $site) {
-		followLinks($site);
-	}
+    }
+
+    array_shift($crawling);
+
+    foreach($crawling as $site) {
+        followLinks($site);
+    }
 
 }
-//you can change this to the url of the website you want to crawl
-$startUrl = "https://github.com/MusheAbdulHakim";
+
+// URL inicial para el crawling
+$startUrl = "https://example.com";
 followLinks($startUrl);
 ?>
