@@ -1,16 +1,16 @@
 <?php
-    include_once 'includes/config.php';
-    include_once 'includes/ResultsProvider.php';
+include_once 'includes/config.php';
+include_once 'includes/ResultsProvider.php';
 
-    if(isset($_GET['term'])){
-        $term = $_GET['term'];
-    }else{
-        exit("You must enter a search term");
-    }
-    $type = isset($_GET["type"]) ? $_GET["type"] : "sites";
-    $page = isset($_GET["page"]) ? $_GET["page"] : 1;
+if (isset($_GET['term'])) {
+    $term = $_GET['term'];
+} else {
+    exit("You must enter a search term");
+}
+$type = isset($_GET["type"]) ? $_GET["type"] : "sites";
+$page = isset($_GET["page"]) ? $_GET["page"] : 1;
 
-    $resultsProvider = new ResultsProvider($db);
+$resultsProvider = new ResultsProvider($db);
 
 ?>
 
@@ -22,13 +22,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Search results</title>
     <link rel="stylesheet" href="assets/css/jquery.fancybox.min.css">
-	<link rel="stylesheet" type="text/css" href="assets/css/style.css">
-	<script src="assets/js/jquery.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="assets/css/style.css">
+    <script src="assets/js/jquery.min.js"></script>
 
 </head>
 <body>
 <div class="wrapper">
-	
+
     <div class="header">
         <div class="headerContent">
 
@@ -42,7 +42,8 @@
                 <form action="search.php" method="GET">
                     <div class="searchBarContainer">
                         <input type="hidden" name="type" value="<?php echo $type; ?>">
-                        <input class="searchBox" type="text" name="term" value="<?php echo $term; ?>" autocomplete="off">
+                        <input class="searchBox" type="text" name="term" value="<?php echo $term; ?>"
+                               autocomplete="off">
                         <button class="searchButton">
                             <img src="assets/images/search.png">
                         </button>
@@ -67,7 +68,7 @@
                     </a>
                 </li>
 
-                <li  class="<?php echo $type == 'videos' ? 'active' : '' ?>">
+                <li class="<?php echo $type == 'videos' ? 'active' : '' ?>">
                     <a href="<?php echo "search.php?term=$term&type=videos"; ?>">Videos</a>
                 </li>
 
@@ -81,19 +82,19 @@
 
         <?php
 
-            $numResults = $resultsProvider->get_total_result($type,$term);
+        $numResults = $resultsProvider->get_total_result($type, $term);
 
-            echo "<p class='resultsCount'>$numResults results found</p>";
-            $pageSize = 20;
-            if($type=='sites'){
-                echo $resultsProvider->site_html_result($page,$pageSize,$term);
-            }
-            if($type == 'images'){
-                echo $resultsProvider->images_html_result($page,$pageSize,$term);
-            }
-            if($type == 'videos'){
-                echo 'under dev';
-            }
+        echo "<p class='resultsCount'>$numResults results found</p>";
+        $pageSize = 20;
+        if ($type == 'sites') {
+            echo $resultsProvider->site_html_result($page, $pageSize, $term);
+        }
+        if ($type == 'images') {
+            echo $resultsProvider->images_html_result($page, $pageSize, $term);
+        }
+        if ($type == 'videos') {
+            echo $resultsProvider->videos_html_result($page, $pageSize, $term);
+        }
         ?>
 
     </div>
@@ -107,45 +108,41 @@
 
             <?php
 
-				$pagesToShow = 10;
-				$numPages = ceil($numResults / $pageSize);
-				$pagesLeft = min($pagesToShow, $numPages);
+            $pagesToShow = 10;
+            $numPages = ceil($numResults / $pageSize);
+            $pagesLeft = min($pagesToShow, $numPages);
 
-				$currentPage = $page - floor($pagesToShow / 2);
+            $currentPage = $page - floor($pagesToShow / 2);
 
-				if($currentPage < 1) {
-					$currentPage = 1;
-				}
+            if ($currentPage < 1) {
+                $currentPage = 1;
+            }
 
-				if($currentPage + $pagesLeft > $numPages + 1) {
-					$currentPage = $numPages + 1 - $pagesLeft;
-				}
+            if ($currentPage + $pagesLeft > $numPages + 1) {
+                $currentPage = $numPages + 1 - $pagesLeft;
+            }
 
-				while($pagesLeft != 0 && $currentPage <= $numPages) {
+            while ($pagesLeft != 0 && $currentPage <= $numPages) {
 
-					if($currentPage == $page) {
-						echo "<div class='pageNumberContainer'>
+                if ($currentPage == $page) {
+                    echo "<div class='pageNumberContainer'>
 								<img src='assets/images/pageSelected.png'>
 								<span class='pageNumber'>$currentPage</span>
 							</div>";
-					}
-					else {
-						echo "<div class='pageNumberContainer'>
+                } else {
+                    echo "<div class='pageNumberContainer'>
 								<a href='search.php?term=$term&type=$type&page=$currentPage'>
 									<img src='assets/images/page.png'>
 									<span class='pageNumber'>$currentPage</span>
 								</a>
 						</div>";
-					}
+                }
 
+                $currentPage++;
+                $pagesLeft--;
+            }
+            ?>
 
-					$currentPage++;
-					$pagesLeft--;
-
-				}
-
-			?>
-            
             <div class="pageNumberContainer">
                 <img src="assets/images/pageEnd.png">
             </div>
